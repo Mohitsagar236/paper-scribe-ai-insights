@@ -3,12 +3,18 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FileUp, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const UploadSection = () => {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -70,8 +76,8 @@ const UploadSection = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (!file) {
+  const handleSubmit = async () => {
+    if (!file || !user) {
       toast({
         title: "No file selected",
         description: "Please upload a PDF or DOCX file to continue.",
@@ -80,16 +86,63 @@ const UploadSection = () => {
       return;
     }
     
-    toast({
-      title: "Processing your document",
-      description: "We're analyzing your paper. This may take a few moments.",
-    });
+    setUploading(true);
     
-    // Here we would normally upload and process the file
-    // For now, we'll just simulate a redirect to results
-    setTimeout(() => {
-      window.location.href = "/results";
-    }, 3000);
+    try {
+      // Create a bucket for papers if it doesn't exist already
+      // This would normally be done in a server-side migration
+      
+      const fileName = `${Date.now()}_${file.name}`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('papers')
+        .upload(filePath, file);
+        
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL of the file
+      const { data: publicURL } = supabase.storage
+        .from('papers')
+        .getPublicUrl(filePath);
+        
+      // Store paper record in database
+      const fileType = file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx';
+      
+      const { error: dbError } = await supabase
+        .from('papers')
+        .insert({
+          user_id: user.id,
+          title: file.name.replace(/\.[^/.]+$/, ""), // Remove file extension
+          file_path: filePath,
+          file_type: fileType,
+          file_size: file.size
+        });
+        
+      if (dbError) throw dbError;
+      
+      toast({
+        title: "Paper uploaded successfully",
+        description: "Your paper is being analyzed. Results will be available shortly.",
+      });
+      
+      // In a real application, you would trigger an AI processing job here
+      // For now, we'll just redirect to the results page
+      setTimeout(() => {
+        navigate("/results");
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "There was an error uploading your file.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -103,7 +156,7 @@ const UploadSection = () => {
         </p>
 
         <div
-          className={`upload-drop-zone ${dragActive ? "active" : ""} p-8 flex flex-col items-center justify-center`}
+          className={`upload-drop-zone ${dragActive ? "active" : ""} p-8 flex flex-col items-center justify-center border-2 border-dashed ${dragActive ? "border-paperMentor-purple bg-paperMentor-softPurple/20" : "border-gray-300"} rounded-lg`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
@@ -166,11 +219,11 @@ const UploadSection = () => {
         <div className="mt-8 text-center">
           <Button
             onClick={handleSubmit}
-            disabled={!file}
+            disabled={!file || uploading}
             size="lg"
             className="bg-paperMentor-purple hover:bg-paperMentor-deepPurple"
           >
-            Analyze Paper
+            {uploading ? "Uploading..." : "Analyze Paper"}
           </Button>
         </div>
       </div>

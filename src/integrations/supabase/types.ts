@@ -9,7 +9,119 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      feedback: {
+        Row: {
+          abstract_feedback: string | null
+          citation_feedback: string | null
+          created_at: string
+          grammar_feedback: string | null
+          id: string
+          journal_suggestions: string | null
+          paper_id: string
+          similar_papers: string | null
+          structure_feedback: string | null
+          title_feedback: string | null
+        }
+        Insert: {
+          abstract_feedback?: string | null
+          citation_feedback?: string | null
+          created_at?: string
+          grammar_feedback?: string | null
+          id?: string
+          journal_suggestions?: string | null
+          paper_id: string
+          similar_papers?: string | null
+          structure_feedback?: string | null
+          title_feedback?: string | null
+        }
+        Update: {
+          abstract_feedback?: string | null
+          citation_feedback?: string | null
+          created_at?: string
+          grammar_feedback?: string | null
+          id?: string
+          journal_suggestions?: string | null
+          paper_id?: string
+          similar_papers?: string | null
+          structure_feedback?: string | null
+          title_feedback?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_paper_id_fkey"
+            columns: ["paper_id"]
+            isOneToOne: false
+            referencedRelation: "papers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      papers: {
+        Row: {
+          created_at: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          plan_type: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          plan_type: string
+          start_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          plan_type?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
